@@ -1,7 +1,5 @@
-#include <stdlib.h>
 #include <tinyxpc/tinyxpc.h>
-#include <stdio.h>
-#include <errno.h>
+#include <stddef.h>
 
 void txpc_connect(txpc_connect_options_t *opts) {
     int negotiated_level = 0;
@@ -14,7 +12,6 @@ void txpc_connect(txpc_connect_options_t *opts) {
         sizeof(txpc_negotiate_descriptor_t));
 
     if(resp_size <= 0) {
-        fprintf(stderr, "got an invalid response, aborting\n");
         negotiated_level = 255;
         goto exit;
     }
@@ -54,7 +51,6 @@ void txpc_accept(txpc_accept_options_t *opts) {
          sizeof(txpc_negotiate_discovery_t));
 
     if(resp_size <= 0 || discovery_block.hdr != 0xAD) {
-        fprintf(stderr, "got an invalid discovery packet, aborting\n");
         negotiated_level = 255;
         goto exit;
     }
@@ -86,12 +82,4 @@ exit:
             descriptor_block.receivers_count
         );
     }
-}
-
-/* For use only when debugging.  Not specified in headers. */
-void debug_done(void *context, uint8_t level, uint8_t tx, uint8_t rx) {
-    fprintf(
-        stdout,
-        "TXPC done called with data: %i, %i, %i\n", level, tx, rx
-    );
 }
