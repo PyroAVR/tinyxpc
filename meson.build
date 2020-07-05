@@ -1,12 +1,27 @@
 project('tinyxpc', 'c')
+# ========= INSTALLATION CONTROL =========
+# Install headers?
+should_install_headers = false
+if get_option('install_headers') == 'not_subproject'
+    should_install_headers = not meson.is_subproject()
+else
+    should_install_headers = (get_option('install_headers') == 'yes')
+endif
+# ========= END INSTALLATION CONTROL =========
 
-includes = include_directories('include')
-
-txpc_main = library('tinyxpc', 'src/tinyxpc.c',
-            include_directories: includes
-)
+# ========= DEPENDENCY OBJECTS FOR SUPERPROJECT BUILDS =========
 
 dep_txpc = declare_dependency(
-    include_directories: includes,
-    link_with: txpc_main
+    include_directories: include_directories('include')
 ) 
+# ========= END DEPENDENCY OBJECTS FOR SUPERPROJECT BUILDS =========
+
+# ========= HEADER INSTALLATION CONFIG =========
+if should_install_headers
+    install_subdir(
+        get_option('includedir'),
+        strip_directory: true,
+        install_dir: join_paths(get_option('prefix'), 'include')
+    )
+endif
+# ======== END HEADER INSTALLATION CONFIG ========
