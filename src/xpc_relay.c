@@ -42,6 +42,8 @@ xpc_relay_state_t *xpc_relay_config(
     target->inflight_rd_op.bytes_complete = 0;
     target->inflight_rd_op.msg_hdr = (txpc_hdr_t){0};
     target->inflight_rd_op.buf = NULL;
+    // signal config
+    target->signals = 0;
 done:
     return target;
 }
@@ -60,7 +62,6 @@ xpc_status_t xpc_relay_send_reset(xpc_relay_state_t *self) {
         status = TXPC_STATUS_INHIBIT;
         goto done;
     }
-    self->signals |= SIG_RST_SEND;
     self->inflight_wr_op.op = TXPC_OP_RESET;
     self->inflight_wr_op.bytes_complete = 0;
     self->inflight_wr_op.total_bytes = sizeof(txpc_hdr_t);
@@ -68,6 +69,7 @@ xpc_status_t xpc_relay_send_reset(xpc_relay_state_t *self) {
         .type = TXPC_MSG_TYPE_RESET, .size = 0, .to = 0, .from = 0
     };
     self->io_notify(self->io_ctx, 1, true);
+    self->signals |= SIG_RST_SEND;
 done:
     return status;
 }
@@ -278,7 +280,7 @@ xpc_status_t xpc_wr_op_continue(xpc_relay_state_t *self) {
 
         if(self->inflight_wr_op.bytes_complete < sizeof(txpc_hdr_t) && self->inflight_wr_op.total_bytes > 0) {
             char *buf = (char*)&self->inflight_wr_op.msg_hdr;
-            bytes = self->write(self->io_ctx, &buf, self->inflight_wr_op.bytes_complete, sizeof(txpc_hdr_t));
+            bytes = self->write(self->io_ctx, &buf, self->inflight_wr_op.bytes_complete, sizeof(txpc_hdr_t) - self->inflight_wr_op.bytes_complete);
         }
         else if(do_payload_write) {
             bytes = self->write(
@@ -326,7 +328,7 @@ xpc_status_t xpc_rd_op_continue(xpc_relay_state_t *self) {
                 self->io_ctx,
                 &buf,
                 self->inflight_rd_op.bytes_complete,
-                sizeof(txpc_hdr_t)
+                sizeof(txpc_hdr_t) - self->inflight_rd_op.bytes_complete
             );
         }
         else if(do_payload_read || do_crc_read){
